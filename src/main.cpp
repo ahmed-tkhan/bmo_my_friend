@@ -1,3 +1,14 @@
+/*
+ * BMO My Friend - E-ink Display Project
+ * 
+ * A cute little BMO from Adventure Time on an e-ink display! 🤖💚
+ * 
+ * Hardware: ESP32 Dev Kit V1 + GDEM0154I61 1.54" E-ink Display (200x200, 4-level grayscale)
+ * Features: BMO face patterns, 4-gray expressions, Adventure Time aesthetic
+ * 
+ * "I am a real boy!" - BMO
+ */
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <FS.h>
@@ -5,6 +16,7 @@
 #include "debug.h"
 #include "config_gooddisplay.h"
 
+// BMO's display specs - perfect for showing BMO's cute face!
 // Official GDEM0154I61 Driver - Based on Good Display sample code
 // This bypasses GxEPD2 and uses the exact official initialization
 

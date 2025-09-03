@@ -32,8 +32,8 @@
 // #define EPD_CS      22    // Alternative CS
 
 // Device Configuration
-#define DEVICE_ID "inklink_gooddisplay_debug"
-#define FIRMWARE_VERSION "1.0.0-gooddisplay"
+#define DEVICE_ID "bmo_my_friend"
+#define FIRMWARE_VERSION "1.0.0-bmo"
 
 // Debug Configuration
 #define ENABLE_DEBUG 1
