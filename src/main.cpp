@@ -289,11 +289,11 @@ static void send2bppTo4Gray(const uint8_t* gray2bpp) {
     EPD_Display4GrayPlanes(plane0, plane1);
 }
 static void drawShowcase4Gray() {
-    DEBUG_INFO("Drawing 4-gray showcase pattern...");
+    DEBUG_INFO("🎮 Drawing BMO-style patterns (just like BMO's games!)...");
     static uint8_t gray2bpp[EPD_WIDTH * EPD_HEIGHT / 4];
     memset(gray2bpp, 0x00, sizeof(gray2bpp));
 
-    // Background light gray
+    // Background light gray (BMO's gentle glow)
     for (int y = 0; y < EPD_HEIGHT; ++y) {
         for (int x = 0; x < EPD_WIDTH; ++x) set2bppLevel(gray2bpp, x, y, 1);
     }
@@ -354,7 +354,7 @@ static void drawShowcase4Gray() {
         }
     }
 
-    // Black border
+    // BMO-style border (like BMO's screen edge)
     for (int x = 0; x < EPD_WIDTH; ++x) {
         set2bppLevel(gray2bpp, x, 0, 3);
         set2bppLevel(gray2bpp, x, EPD_HEIGHT-1, 3);
@@ -364,13 +364,13 @@ static void drawShowcase4Gray() {
         set2bppLevel(gray2bpp, EPD_WIDTH-1, y, 3);
     }
 
-    // Send to display
+    // Send to BMO's display
     send2bppTo4Gray(gray2bpp);
-    DEBUG_INFO("4-gray showcase complete");
+    DEBUG_INFO("🎨 BMO-style patterns complete! Mathematical!");
 }
 
-// Path to 2-bpp RAW image in SPIFFS (place file in `data/` and upload FS)
-static const char* kImagePath = "/noise_200x200_2bpp.bin"; // 10,000 bytes, 200x200, 2-bpp, row-major, 4 px/byte
+// Path to BMO's face data in SPIFFS (upload BMO graphics to `data/` folder)
+static const char* kImagePath = "/noise_200x200_2bpp.bin"; // BMO face: 10,000 bytes, 200x200, 2-bpp, 4 px/byte
 
 // Preview helpers
 static uint32_t crc32_update(uint32_t crc, const uint8_t* data, size_t len) {
@@ -438,16 +438,15 @@ static bool load2bppFromSPIFFS(const char* path, uint8_t* outBuf, size_t expectL
 void setup() {
     Serial.begin(115200);
     delay(2000);
-
-
-    DEBUG_INFO("Official test complete - display should show activity");
-    printSeparator("GDEM0154I61 4-Gray Image Loader");
+    
+    DEBUG_INFO("🤖 BMO My Friend starting up!");
+    DEBUG_INFO("BMO says: 'I am a real boy!'");
+    printSeparator("BMO My Friend - E-ink Display");
     printDebugInfo();
 
-    // Initialize GPIO and SPI
+    // Initialize GPIO and SPI for BMO's display
     initializePins();
-    // Test 4: 4-level grayscale showcase
-    DEBUG_INFO("Test 4: 4-level grayscale showcase (shapes + swatches)");
+    DEBUG_INFO("🎮 BMO's display ready - showing Adventure Time patterns!");
 
 
     
@@ -466,31 +465,24 @@ void setup() {
     if (load2bppFromSPIFFS(kImagePath, raw2bpp, sizeof(raw2bpp))) {
         testScreenWipe();
         delay(2000);
-        DEBUG_INFO("Displaying 2-bpp image -> 4-gray planes");
+        DEBUG_INFO("🎨 Loading BMO graphics from memory...");
         EPD_HW_Init_4GRAY();
         send2bppTo4Gray(raw2bpp);
-        DEBUG_INFO("Display update done");
+        DEBUG_INFO("✨ BMO is now displayed! Looking cute!");
     } else {
-        DEBUG_ERROR("Failed to load image; drawing fallback 4-gray showcase");
+        DEBUG_INFO("📱 No BMO image found, showing geometric patterns instead");
         drawShowcase4Gray();
     }
 
-    // Optional: deep sleep display controller
+    // Optional: BMO goes to sleep to save power 
     EPD_DeepSleep();
-
-    // delay(2000);
-    // DEBUG_INFO("Setup complete");
-
-    // EPD_HW_Init(); // Re-init to 1-bpp mode for any further tests
-    // EPD_HW_Init_4GRAY(); // Re-init to 4-gray mode
-    // drawShowcase4Gray(); // Draw showcase again
-    // EPD_DeepSleep(); // Deep sleep again
+    DEBUG_INFO("💤 BMO is sleeping peacefully...");
     
 }
 
 void loop() {
-    // Nothing to do. Image shown once at boot.
-    delay(1000);
+    // BMO is displayed and sleeping. Living the dream! 🌙
+    delay(10000);  // BMO dreams in 10-second cycles
 }
 
 void initializePins() {
