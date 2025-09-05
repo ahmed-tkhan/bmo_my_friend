@@ -16,14 +16,6 @@
 // Cable order: BUSY, RES, D/C, CS, SCK, SDI, GND, 3.3V
 // Switch position: ? (you mentioned switch between 0.47 and 3)
 
-#define EPD_BUSY    5     // GPIO5  - BUSY (first in cable order)
-#define EPD_RST     4     // GPIO4  - RES  (Reset)
-#define EPD_DC      2     // GPIO2  - D/C  (Data/Command)  
-#define EPD_CS      15    // GPIO15 - CS   (Chip Select)
-// SCK  = GPIO18 (Hardware SPI)
-// SDI  = GPIO23 (Hardware SPI MOSI)
-// GND  = GND
-// 3.3V = 3.3V
 
 // Alternative pin configuration (if above doesn't work)
 // #define EPD_BUSY    16    // Alternative BUSY

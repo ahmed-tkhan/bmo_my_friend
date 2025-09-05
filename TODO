@@ -1,0 +1,234 @@
+# BMO My Friend - TODO List
+
+## BMO Face Expressions to Create
+- [ ] **Happy BMO** - Big smile with excited eyes
+- [ ] **Sleepy BMO** - Droopy eyes, peaceful expression  
+- [ ] **Excited BMO** - Wide eyes, open mouth "OH!"
+- [ ] **Gaming BMO** - Focused expression with controller symbols
+- [ ] **Musical BMO** - Notes around face, singing expression
+- [ ] **Confused BMO** - Question marks, puzzled look
+- [ ] **Love BMO** - Heart eyes, blushing
+- [ ] **Angry BMO** - Frowning, storm clouds (rare for BMO!)
+- [ ] **Thinking BMO** - Thoughtful expression with gears/lightbulb
+- [ ] **Surprised BMO** - Wide eyes, shocked expression
+- [ ] **Winking BMO** - One eye closed, playful
+- [ ] **Neutral BMO** - Default calm, friendly face
+
+## Audio with Piezo passive
+- we try piezo with voice, if it works, great
+- otherwise move onto a secondary option...
+
+## Animation & Display Improvements
+- [x] **Partial Refresh Implementation** COMPLETE
+  - [x] Research SSD1681 partial refresh commands (COMPLETE See DOCS/SSD1681_Partial_Refresh_Research.md)
+  - [x] Create BMO face region JSON configuration (COMPLETE data/bmo_face_regions.json)
+  - [x] Build Python visualization tool (COMPLETE scripts/visualize_bmo_regions.py)
+  - [x] Create C++ header generator (COMPLETE scripts/generate_regions_header.py)
+  - [x] Generate BMO face regions header file (include/bmo_face_regions.h) COMPLETE
+  - [x] Implement EPD_PartialUpdate_Region() function COMPLETE
+  - [x] Test basic rectangle partial updates COMPLETE
+  - [x] Implement region-based updates (eyes, mouth only) COMPLETE
+  - [x] Create professional display controller class COMPLETE
+  - [x] Optimize refresh timing for animations (1-2 Hz achieved) COMPLETE
+  - [x] Add ghosting mitigation (periodic full refresh) COMPLETE
+
+- [ ] **PC BMO Simulation System** NEW
+  - [ ] Find/create BMO face reference images from Adventure Time
+  - [ ] Create BMO base face template (200x200 e-paper compatible)
+  - [ ] Design 2-region system: Eyes + Mouth only
+  - [ ] Create eye expression variations (happy, sleepy, excited, winking, etc.)
+  - [ ] Create mouth expression variations (smile, frown, open, talking, etc.)
+  - [ ] Build PC simulation tool (Python/C++) that:
+    - [ ] Reads same header files as ESP32 firmware
+    - [ ] Simulates 1.8 Hz max refresh rate
+    - [ ] Shows real-time BMO face changes
+    - [ ] Exports compatible image data for ESP32
+  - [ ] Test expression combinations (eye + mouth pairs)
+  - [ ] Create animation sequences for smooth transitions
+  
+- [x] **Smooth Facial Animations** COMPLETE (Basic framework complete)
+  - [x] Partial refresh system working COMPLETE
+  - [ ] Eye blinking animation (awaiting BMO face assets)
+  - [ ] Mouth movement for "talking" (awaiting BMO face assets)
+  - [ ] Expression transitions (happy → excited)
+  - [ ] Idle animations (occasional blinks)
+  
+- [x] **Display Optimization** COMPLETE (Core complete)
+  - [x] Reduce full-refresh flicker COMPLETE
+  - [x] Professional class-based display controller COMPLETE
+  - [x] Optimized refresh timing (1-2 Hz achieved) COMPLETE
+  - [ ] Implement LUT (Look-Up Table) optimization
+  - [ ] Test different refresh modes
+  - [ ] Power-efficient display updates
+
+## Text & Graphics on BMO's Face
+- [ ] **Text Display System**
+  - [ ] Small font for BMO "speech bubbles"
+  - [ ] Text overlay on face (like subtitles)
+  - [ ] Scrolling text for longer messages
+  - [ ] Multi-line text support
+  
+- [ ] **Interactive Text Features**
+  - [ ] BMO quotes from Adventure Time
+  - [ ] Time/date display
+  - [ ] Weather information
+  - [ ] System status messages
+  - [ ] WiFi connection status
+  
+- [ ] **Graphics Overlays**
+  - [ ] Game controller symbols
+  - [ ] Musical notes when "singing"
+  - [ ] Heart symbols for love mode
+  - [ ] Progress bars for activities
+  - [ ] Notification icons
+
+## BMO Personality Features
+- [ ] **Interactive Responses**
+  - [ ] Button press reactions
+  - [ ] Touch sensor support
+  - [ ] Voice activation (microphone)
+  - [ ] Accelerometer reactions (shake to wake)
+  
+  
+- [ ] **Game Features** (True to BMO!)
+  - [ ] Simple games on screen
+  - [ ] Score keeping
+  - [ ] Mini-puzzles
+  - [ ] Sound effects via buzzer/speaker
+
+## Audio Features
+- [ ] **BMO Voice**
+  - [ ] I2S DAC for audio output
+  - [ ] BMO voice clips from show
+  - [ ] Text-to-speech BMO voice
+  - [ ] Musical capabilities (BMO's songs!)
+  
+- [ ] **Sound Effects**
+  - [ ] Button press sounds
+  - [ ] Game sound effects
+  - [ ] Notification chimes
+  - [ ] Adventure Time music clips
+
+## Connectivity & Smart Features
+- [ ] **WiFi Integration**
+  - [ ] Weather updates for BMO
+  - [ ] Time synchronization
+  - [ ] Remote BMO control via web
+  - [ ] Adventure Time episode alerts
+  
+- [ ] **Smart Home Integration**
+  - [ ] Home Assistant integration
+  - [ ] MQTT communication
+  - [ ] Smart device status display
+  - [ ] Notification relay (like smart doorbell)
+
+## Technical Improvements
+- [ ] **Hardware Optimizations**
+  - [ ] Power management improvements
+  - [ ] Sleep mode optimizations
+  - [ ] Battery operation support
+  - [ ] USB-C charging circuit
+  
+- [ ] **Software Architecture**
+  - [ ] State machine for expressions
+  - [ ] Animation framework
+  - [ ] Graphics library improvements
+  - [ ] Memory optimization for more faces
+  
+- [ ] **Development Tools**
+  - [x] Professional C++ display controller class COMPLETE
+  - [x] Partial refresh implementation COMPLETE
+  - [ ] **PC BMO Simulator** NEW IMMEDIATE PRIORITY
+    - [ ] Python/C++ app that simulates BMO expressions
+    - [ ] 1.8 Hz max refresh rate simulation
+    - [ ] Uses same header files as ESP32 firmware
+    - [ ] Real-time expression preview
+    - [ ] Export tool for ESP32-compatible data
+  - [ ] BMO face editor (PC tool)
+  - [ ] Animation preview tool
+  - [ ] Font converter for BMO text
+  - [ ] OTA (Over-The-Air) updates
+
+## Content Creation
+- [ ] **BMO Face Assets** NEW HIGH PRIORITY
+  - [ ] **Research Phase**
+    - [ ] Collect Adventure Time BMO screenshots/references
+    - [ ] Study BMO's canonical expressions and proportions
+    - [ ] Analyze face geometry for 200x200 e-paper display
+  - [ ] **Base Template Creation**
+    - [ ] Create BMO face outline (static base image)
+    - [ ] Design 2-region layout: Eyes region + Mouth region
+    - [ ] Ensure compatibility with e-paper 1-bit/4-gray formats
+  - [ ] **Eye Expressions** (Region 1)
+    - [ ] Happy eyes (normal size, content)
+    - [ ] Sleepy eyes (half-closed, droopy)
+    - [ ] Excited eyes (wide open, alert)
+    - [ ] Winking (left eye closed)
+    - [ ] Surprised eyes (very wide)
+    - [ ] Heart eyes (for love mode)
+  - [ ] **Mouth Expressions** (Region 2)
+    - [ ] Happy smile (BMO's classic smile)
+    - [ ] Open mouth (talking/excited "OH!")
+    - [ ] Neutral mouth (flat line)
+    - [ ] Frown (rare for BMO)
+    - [ ] Speaking mouth (for text-to-speech)
+    - [ ] Musical mouth (singing expression)
+  
+- [ ] **Graphics Assets**
+  - [ ] Create all face expressions in 1-bit monochrome for e-paper
+  - [ ] Convert to C++ header arrays (compatible with ESP32)
+  - [ ] Adventure Time themed backgrounds
+  - [ ] Icon set (hearts, notes, etc.)
+  - [ ] Animation frames for smooth transitions
+  
+- [ ] **Audio Assets**
+  - [ ] Record/find BMO voice clips
+  - [ ] Adventure Time sound effects
+  - [ ] Musical compositions for BMO
+  - [ ] Notification sounds
+  
+- [ ] **Text Content**
+  - [ ] BMO quotes database
+  - [ ] Adventure Time references
+  - [ ] Interactive dialogue options
+  - [ ] Help/instruction text
+
+## Priority Levels
+**IMMEDIATE (Next Steps):**
+- Find BMO reference images from Adventure Time
+- Create PC simulation tool (1.8 Hz, same headers as ESP32)
+- Design 2-region system (eyes + mouth)
+- Create basic BMO face template
+
+**High Priority (Core BMO):**
+- Basic face expressions (happy, sleepy, excited)
+- COMPLETE Partial refresh for smooth animation (COMPLETE)
+- Text overlay system
+
+**Medium Priority (Enhanced BMO):**
+- Audio features
+- WiFi connectivity
+- More complex animations
+
+**Low Priority (Advanced BMO):**
+- Smart home integration
+- Complex games
+- OTA updates
+
+## Phase Planning
+**Phase 1: Basic BMO** COMPLETE (Partial Complete)
+- COMPLETE Core expressions and smooth display framework
+- CURRENT: BMO face assets and PC simulation
+
+**Phase 2: Talking BMO** - Audio and text features  
+**Phase 3: Smart BMO** - Connectivity and smart features
+**Phase 4: Ultimate BMO** - Full Adventure Time experience
+
+## Recent Achievements
+- COMPLETE **Professional Display Controller**: Complete class-based implementation
+- COMPLETE **Partial Refresh Working**: 1-2 Hz update rate achieved
+- COMPLETE **Multi-Region Updates**: Can update eyes and mouth independently
+- COMPLETE **Smooth Animation Framework**: Ready for BMO expressions
+
+---
+*"I am a real boy!" - BMO*

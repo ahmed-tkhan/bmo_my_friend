@@ -1,0 +1,193 @@
+{
+  "display_info": {
+    "width_pixels": 200,
+    "height_pixels": 200,
+    "width_bytes": 25,
+    "description": "BMO My Friend - E-ink display regions for partial refresh"
+  },
+  
+  "regions": {
+    "text_area": {
+      "name": "Text/Status Area",
+      "description": "Top area for BMO speech bubbles and status text",
+      "x_start_byte": 0,
+      "x_end_byte": 24,
+      "x_start_pixel": 0,
+      "x_end_pixel": 199,
+      "y_start": 0,
+      "y_end": 39,
+      "color": "#FF6B6B",
+      "priority": "high"
+    },
+    
+    "left_eye": {
+      "name": "Left Eye",
+      "description": "BMO's left eye region for expressions and blinking",
+      "x_start_byte": 4,
+      "x_end_byte": 9,
+      "x_start_pixel": 32,
+      "x_end_pixel": 79,
+      "y_start": 50,
+      "y_end": 90,
+      "color": "#4ECDC4",
+      "priority": "high"
+    },
+    
+    "right_eye": {
+      "name": "Right Eye", 
+      "description": "BMO's right eye region for expressions and blinking",
+      "x_start_byte": 15,
+      "x_end_byte": 20,
+      "x_start_pixel": 120,
+      "x_end_pixel": 167,
+      "y_start": 50,
+      "y_end": 90,
+      "color": "#4ECDC4",
+      "priority": "high"
+    },
+    
+    "nose_center": {
+      "name": "Nose/Center",
+      "description": "BMO's nose/center area between eyes",
+      "x_start_byte": 10,
+      "x_end_byte": 14,
+      "x_start_pixel": 80,
+      "x_end_pixel": 119,
+      "y_start": 60,
+      "y_end": 80,
+      "color": "#95E1D3",
+      "priority": "medium"
+    },
+    
+    "mouth": {
+      "name": "Mouth",
+      "description": "BMO's mouth region for talking and expressions",
+      "x_start_byte": 8,
+      "x_end_byte": 16,
+      "x_start_pixel": 64,
+      "x_end_pixel": 135,
+      "y_start": 120,
+      "y_end": 150,
+      "color": "#F38BA8",
+      "priority": "high"
+    },
+    
+    "cheeks_left": {
+      "name": "Left Cheek",
+      "description": "BMO's left cheek for blush/emotion effects",
+      "x_start_byte": 2,
+      "x_end_byte": 6,
+      "x_start_pixel": 16,
+      "x_end_pixel": 55,
+      "y_start": 100,
+      "y_end": 130,
+      "color": "#FFB3BA",
+      "priority": "low"
+    },
+    
+    "cheeks_right": {
+      "name": "Right Cheek",
+      "description": "BMO's right cheek for blush/emotion effects", 
+      "x_start_byte": 18,
+      "x_end_byte": 22,
+      "x_start_pixel": 144,
+      "x_end_pixel": 183,
+      "y_start": 100,
+      "y_end": 130,
+      "color": "#FFB3BA",
+      "priority": "low"
+    },
+    
+    "forehead": {
+      "name": "Forehead",
+      "description": "BMO's forehead area for symbols and effects",
+      "x_start_byte": 6,
+      "x_end_byte": 18,
+      "x_start_pixel": 48,
+      "x_end_pixel": 151,
+      "y_start": 25,
+      "y_end": 45,
+      "color": "#BFDBFE",
+      "priority": "medium"
+    },
+    
+    "chin_area": {
+      "name": "Chin Area",
+      "description": "BMO's chin/lower face area",
+      "x_start_byte": 7,
+      "x_end_byte": 17,
+      "x_start_pixel": 56,
+      "x_end_pixel": 143,
+      "y_start": 155,
+      "y_end": 180,
+      "color": "#DDD6FE",
+      "priority": "low"
+    },
+    
+    "screen_border": {
+      "name": "Screen Border",
+      "description": "BMO's screen border/frame (decorative)",
+      "x_start_byte": 0,
+      "x_end_byte": 24,
+      "x_start_pixel": 0,
+      "x_end_pixel": 199,
+      "y_start": 185,
+      "y_end": 199,
+      "color": "#374151",
+      "priority": "low"
+    }
+  },
+  
+  "animation_sequences": {
+    "blink": {
+      "description": "Eye blinking animation",
+      "regions": ["left_eye", "right_eye"],
+      "duration_ms": 300,
+      "frequency": "every_5_seconds"
+    },
+    
+    "talk": {
+      "description": "Talking mouth animation",
+      "regions": ["mouth", "text_area"], 
+      "duration_ms": 150,
+      "frequency": "during_speech"
+    },
+    
+    "expression_change": {
+      "description": "Full facial expression change",
+      "regions": ["left_eye", "right_eye", "mouth", "forehead"],
+      "duration_ms": 500,
+      "frequency": "on_demand"
+    },
+    
+    "blush": {
+      "description": "Blushing/embarrassed animation",
+      "regions": ["cheeks_left", "cheeks_right"],
+      "duration_ms": 1000,
+      "frequency": "on_emotion"
+    }
+  },
+  
+  "refresh_strategies": {
+    "high_frequency": {
+      "description": "For critical animations (eyes, mouth)",
+      "update_mode": "0xCF",
+      "ghosting_threshold": 5,
+      "regions": ["left_eye", "right_eye", "mouth"]
+    },
+    
+    "medium_frequency": {
+      "description": "For secondary features",
+      "update_mode": "0xCF", 
+      "ghosting_threshold": 10,
+      "regions": ["text_area", "forehead", "nose_center"]
+    },
+    
+    "low_frequency": {
+      "description": "For decorative elements",
+      "update_mode": "0xFF",
+      "ghosting_threshold": 20,
+      "regions": ["cheeks_left", "cheeks_right", "chin_area", "screen_border"]
+    }
+  }
+}
