@@ -49,8 +49,13 @@ GDEH0154D67_Display display(EPD_BUSY, EPD_RST, EPD_DC, EPD_CS, EPD_SCK, EPD_SDI)
 
 // Demo state variables
 static bool first_run = true;
+
 static unsigned long last_update_time = 0;
 static const unsigned long UPDATE_INTERVAL = 1000;  // Update every 100ms (10 FPS) - much faster for BMO emotions!
+
+// State variable to track sequential partial updates
+static int partial_update_count = 0;
+static const int PARTIAL_UPDATE_THRESHOLD = 5;
 
 /**
  * Arduino setup function - runs once at startup
@@ -131,9 +136,24 @@ void loop() {
         lastSwitch = millis();
     }
 
+
     unsigned long now = millis();
     if (now - lastSwitch < 1000) return;
     lastSwitch = now;
+
+    // If we've done enough partial updates, do a full refresh
+    if (partial_update_count >= PARTIAL_UPDATE_THRESHOLD) {
+        Serial.println("\n--- Threshold reached: Performing full refresh to clear ghosting ---");
+        display.initializeMonochrome();
+        display.clearScreen();
+        static uint8_t white_base[5000];
+        memset(white_base, 0xFF, sizeof(white_base));
+        display.setPartialRefreshBase(white_base);
+        display.refreshFull();
+        Serial.println("--- Full refresh completed, resuming animation ---\n");
+        partial_update_count = 0;
+        return;
+    }
 
     // Read and display the current .bin file
     File& f = binFiles[currentFile];
@@ -182,14 +202,9 @@ void loop() {
     }
     f.seek(16);
     f.read(regionBuf, bytes);
+
     display.updatePartialRegion(x, 200-y, regionBuf, w, h);
-    // display.updatePartialRegion(0, 200, regionBuf, w, h);
-    // delay(1000); // Small delay to ensure display processes commands
-    // display.updatePartialRegion(200-w, 200, regionBuf, w, h);
-    // delay(2000); // Small delay to ensure display processes commands
-    // display.updatePartialRegion(200-w, 0+h, regionBuf, w, h);
-    // delay(4000); // Small delay to ensure display processes commands    
-    // display.updatePartialRegion(0, 0+h, regionBuf, w, h);
+    partial_update_count++;
 
     Serial.print("Displayed: "); Serial.println(f.name());
     currentFile = (currentFile + 1) % numFiles;

@@ -1,18 +1,18 @@
 # BMO My Friend - TODO List
 
 ## BMO Face Expressions to Create
-- [ ] **Happy BMO** - Big smile with excited eyes
-- [ ] **Sleepy BMO** - Droopy eyes, peaceful expression  
-- [ ] **Excited BMO** - Wide eyes, open mouth "OH!"
-- [ ] **Gaming BMO** - Focused expression with controller symbols
-- [ ] **Musical BMO** - Notes around face, singing expression
-- [ ] **Confused BMO** - Question marks, puzzled look
-- [ ] **Love BMO** - Heart eyes, blushing
-- [ ] **Angry BMO** - Frowning, storm clouds (rare for BMO!)
-- [ ] **Thinking BMO** - Thoughtful expression with gears/lightbulb
-- [ ] **Surprised BMO** - Wide eyes, shocked expression
-- [ ] **Winking BMO** - One eye closed, playful
-- [ ] **Neutral BMO** - Default calm, friendly face
+- [x] **Happy BMO** - Big smile with excited eyes (partial update, flicker-free)
+- [x] **Sleepy BMO** - Droopy eyes, peaceful expression (partial update, flicker-free)
+- [x] **Excited BMO** - Wide eyes, open mouth "OH!" (partial update, flicker-free)
+- [x] **Gaming BMO** - Focused expression with controller symbols (partial update, flicker-free)
+- [x] **Musical BMO** - Notes around face, singing expression (partial update, flicker-free)
+- [x] **Confused BMO** - Question marks, puzzled look (partial update, flicker-free)
+- [x] **Love BMO** - Heart eyes, blushing (partial update, flicker-free)
+- [x] **Angry BMO** - Frowning, storm clouds (rare for BMO!) (partial update, flicker-free)
+- [x] **Thinking BMO** - Thoughtful expression with gears/lightbulb (partial update, flicker-free)
+- [x] **Surprised BMO** - Wide eyes, shocked expression (partial update, flicker-free)
+- [x] **Winking BMO** - One eye closed, playful (partial update, flicker-free)
+- [x] **Neutral BMO** - Default calm, friendly face (partial update, flicker-free)
 
 ## Audio with Piezo passive
 - we try piezo with voice, if it works, great
@@ -39,6 +39,7 @@
   - [ ] Create eye expression variations (happy, sleepy, excited, winking, etc.)
   - [ ] Create mouth expression variations (smile, frown, open, talking, etc.)
   - [ ] Build PC simulation tool (Python/C++) that:
+  - [ ] Build PC simulation tool (Python/C++) that:
     - [ ] Reads same header files as ESP32 firmware
     - [ ] Simulates 1.8 Hz max refresh rate
     - [ ] Shows real-time BMO face changes
@@ -48,6 +49,9 @@
   
 - [x] **Smooth Facial Animations** COMPLETE (Basic framework complete)
   - [x] Partial refresh system working COMPLETE
+  - [x] Flicker-free partial update animation for all face expressions COMPLETE
+  - [x] Eye/mouth region system implemented
+  - [x] List of BMO faces implemented (see above)
   - [ ] Eye blinking animation (awaiting BMO face assets)
   - [ ] Mouth movement for "talking" (awaiting BMO face assets)
   - [ ] Expression transitions (happy → excited)
