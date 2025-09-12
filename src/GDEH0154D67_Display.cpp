@@ -332,8 +332,12 @@ bool GDEH0154D67_Display::updatePartialRegion(unsigned int x_start, unsigned int
     }
     
     // Validate coordinates
-    if (x_start + width > DISPLAY_WIDTH || y_start + height > DISPLAY_HEIGHT) {
-        setError("Region coordinates exceed display bounds");
+    if (x_start + width > DISPLAY_WIDTH) {
+        setError("Region X coordinates exceed display bounds");
+        return false;
+    }
+    if (y_start > DISPLAY_HEIGHT || height == 0 || height > DISPLAY_HEIGHT) {
+        setError("Region Y coordinates exceed display bounds");
         return false;
     }
     

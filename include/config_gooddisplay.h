@@ -17,11 +17,7 @@
 // Switch position: ? (you mentioned switch between 0.47 and 3)
 
 
-// Alternative pin configuration (if above doesn't work)
-// #define EPD_BUSY    16    // Alternative BUSY
-// #define EPD_RST     17    // Alternative RST
-// #define EPD_DC      21    // Alternative DC
-// #define EPD_CS      22    // Alternative CS
+
 
 // Device Configuration
 #define DEVICE_ID "bmo_my_friend"
