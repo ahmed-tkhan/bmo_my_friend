@@ -1,7 +1,7 @@
 #ifndef CONFIG_GOODDISPLAY_H
 #define CONFIG_GOODDISPLAY_H
 
-// Good Display GDEM0154I61 Configuration for ESP32 Dev Kit V1
+// Good Display GDEM0154I61 Configuration for Seeed XIAO ESP32-C3
 // Display: 200x200 4-Grayscale (not just Black/White!)
 // Interface: 4-wire SPI
 // HAT: Good Display custom HAT with switch

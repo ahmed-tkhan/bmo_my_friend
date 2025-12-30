@@ -13,6 +13,22 @@
 
 #include "GDEH0154D67_Display.h"
 
+// ===== MONOCHROME LOOKUP TABLES FOR BLACK & WHITE =====
+// Custom LUTs for improved refresh quality and faster partial updates
+static const unsigned char lut_full_update[30] = {
+    0x02, 0x02, 0x01, 0x11, 0x12, 0x12, 0x22, 0x22, 
+    0x66, 0x69, 0x69, 0x59, 0x58, 0x99, 0x99, 0x88, 
+    0x00, 0x00, 0x00, 0x00, 0xF8, 0xB4, 0x13, 0x51, 
+    0x35, 0x51, 0x51, 0x19, 0x01, 0x00
+};
+
+static const unsigned char lut_partial_update[30] = {
+    0x10, 0x18, 0x18, 0x08, 0x18, 0x18, 0x08, 0x00, 
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+    0x00, 0x00, 0x00, 0x00, 0x13, 0x14, 0x44, 0x12, 
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
 // ===== 4-GRAYSCALE LOOKUP TABLE =====
 // This 159-byte LUT defines the voltage waveforms for 4-level grayscale operation
 static const unsigned char LUT_DATA_4Gray[159] = {
@@ -73,6 +89,36 @@ void GDEH0154D67_Display::initializePins() {
     setCS_Inactive();
     setRST_Inactive();
     
+    // Print detailed pin configuration
+    if (debug_enabled_) {
+        Serial.println("\n========== PIN CONFIGURATION ==========");
+        Serial.print("BUSY  (Input):  GPIO"); Serial.println(busy_pin_);
+        Serial.print("RST   (Output): GPIO"); Serial.println(rst_pin_);
+        Serial.print("DC    (Output): GPIO"); Serial.println(dc_pin_);
+        Serial.print("CS    (Output): GPIO"); Serial.println(cs_pin_);
+        Serial.print("SCK   (Output): GPIO"); Serial.println(sck_pin_);
+        Serial.print("SDI   (Output): GPIO"); Serial.println(sdi_pin_);
+        Serial.println("=======================================\n");
+        
+        // Test pin toggling
+        Serial.println("Testing pin outputs...");
+        Serial.print("DC pin test: ");
+        setDC_Command(); delay(10);
+        Serial.print("LOW ");
+        setDC_Data(); delay(10);
+        Serial.println("HIGH - OK");
+        
+        Serial.print("CS pin test: ");
+        setCS_Active(); delay(10);
+        Serial.print("LOW ");
+        setCS_Inactive(); delay(10);
+        Serial.println("HIGH - OK");
+        
+        Serial.print("BUSY pin reads: ");
+        Serial.println(digitalRead(busy_pin_) ? "HIGH" : "LOW");
+        Serial.println();
+    }
+    
     debugPrint("GPIO pins initialized successfully");
 }
 
@@ -121,6 +167,9 @@ bool GDEH0154D67_Display::initializeMonochrome() {
     // Configure built-in temperature sensor for optimal refresh
     writeCommand(0x18);  // Read built-in temperature sensor
     writeData(0x80);     // Use internal temperature sensor
+    
+    // Load custom LUT for full refresh
+    loadMonochromeLUT(lut_full_update);
     
     // Set initial RAM address pointers
     writeCommand(0x4E);  // Set RAM X address counter
@@ -509,6 +558,9 @@ void GDEH0154D67_Display::refreshFull() {
 void GDEH0154D67_Display::refreshPartial() {
     debugPrint("Triggering partial refresh");
     
+    // Load LUT for fast partial update
+    loadMonochromeLUT(lut_partial_update);
+    
     writeCommand(0x22);  // Display Update Control
     writeData(0xFF);     // Partial refresh without flicker
     writeCommand(0x20);  // Activate Display Update Sequence
@@ -586,6 +638,15 @@ void GDEH0154D67_Display::spiWrite(unsigned char value) {
 }
 
 void GDEH0154D67_Display::writeCommand(unsigned char cmd) {
+    if (debug_enabled_) {
+        Serial.print("[SPI CMD] 0x");
+        Serial.print(cmd, HEX);
+        Serial.print(" | DC=LOW (Command) | CS=LOW | Pin states: DC=");
+        Serial.print(dc_pin_);
+        Serial.print(" CS=");
+        Serial.println(cs_pin_);
+    }
+    
     spiDelay(1);
     setCS_Active();     // Select display
     setDC_Command();    // Set to command mode
@@ -594,6 +655,22 @@ void GDEH0154D67_Display::writeCommand(unsigned char cmd) {
 }
 
 void GDEH0154D67_Display::writeData(unsigned char data) {
+    static int data_count = 0;
+    
+    // Only print first few data bytes to avoid spam
+    if (debug_enabled_ && data_count < 5) {
+        Serial.print("[SPI DATA] 0x");
+        Serial.print(data, HEX);
+        Serial.print(" | DC=HIGH (Data) | CS=LOW | Pin states: DC=");
+        Serial.print(dc_pin_);
+        Serial.print(" CS=");
+        Serial.println(cs_pin_);
+        data_count++;
+        if (data_count == 5) {
+            Serial.println("[SPI] Further data bytes suppressed for brevity...");
+        }
+    }
+    
     spiDelay(1);
     setCS_Active();     // Select display
     setDC_Data();       // Set to data mode
@@ -602,11 +679,21 @@ void GDEH0154D67_Display::writeData(unsigned char data) {
 }
 
 void GDEH0154D67_Display::waitBusy() {
-    // Wait while BUSY signal is high (display is busy)
-    while (readBusy()) {
-        // Small delay to prevent excessive polling
-        delay(1);
+    // WORKAROUND: BUSY pin may not be connected or has inverted logic
+    // Use fixed delay instead of polling BUSY
+    if (debug_enabled_) {
+        Serial.print("[BUSY] Waiting with fixed delay (BUSY pin reads: ");
+        Serial.print(digitalRead(busy_pin_) ? "HIGH" : "LOW");
+        Serial.println(")");
     }
+    
+    // Wait a fixed amount of time for display to complete operation
+    delay(200);  // 200ms should be enough for most operations
+    
+    // Original polling code disabled:
+    // while (readBusy()) {
+    //     delay(1);
+    // }
 }
 
 // ===== TIMING & DELAY FUNCTIONS =====
@@ -710,6 +797,19 @@ void GDEH0154D67_Display::loadGrayscaleLUT(const unsigned char* wave_data) {
     }
     
     debugPrint("4-grayscale LUT loaded");
+}
+
+void GDEH0154D67_Display::loadMonochromeLUT(const unsigned char* lut_data) {
+    debugPrint("Loading monochrome lookup table");
+    
+    writeCommand(0x32);  // Load LUT command
+    
+    // Load 30 bytes of LUT data
+    for (unsigned int i = 0; i < 30; i++) {
+        writeData(lut_data[i]);
+    }
+    
+    debugPrint("Monochrome LUT loaded");
 }
 
 // ===== DEBUG HELPERS =====

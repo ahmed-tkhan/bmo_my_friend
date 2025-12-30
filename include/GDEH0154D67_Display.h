@@ -333,6 +333,12 @@ private:
      * @param wave_data Pointer to 159-byte LUT data
      */
     void loadGrayscaleLUT(const unsigned char* wave_data);
+    
+    /**
+     * @brief Load custom lookup table for monochrome black/white mode
+     * @param lut_data Pointer to 30-byte LUT data
+     */
+    void loadMonochromeLUT(const unsigned char* lut_data);
 
     // ===== GPIO CONTROL MACROS =====
     

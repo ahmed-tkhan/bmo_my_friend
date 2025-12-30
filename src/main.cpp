@@ -21,13 +21,14 @@
 #include "GDEH0154D67_Display.h"
 
 
-// 
-#define EPD_BUSY    5     // GPIO5  - BUSY (first in cable order)
-#define EPD_RST     4     // GPIO4  - RES  (Reset)
-#define EPD_DC      2     // GPIO2  - D/C  (Data/Command)  
-#define EPD_CS      15    // GPIO15 - CS   (Chip Select)
-#define EPD_SCK     18    // GPIO18 - SCK  (SPI Clock)
-#define EPD_SDI     23    // GPIO23 - SDI  (SPI Data)
+// GPIO Pin Configuration for Seeed XIAO ESP32-C3
+// Using hardware SPI pins for proper communication
+#define EPD_BUSY    D1     // GPIO3  - BUSY
+#define EPD_RST     D0     // GPIO2  - RES  (Reset)
+#define EPD_DC      D2     // GPIO4  - D/C  (Data/Command)  
+#define EPD_CS      D3     // GPIO5  - CS   (Chip Select)
+#define EPD_SCK     D8     // GPIO8  - SCK  (Hardware SPI Clock)
+#define EPD_SDI     D10    // GPIO10 - MOSI (Hardware SPI Data)
 // GND  = GND
 // 3.3V = 3.3V
 
@@ -297,13 +298,9 @@ void handleError(const char* error_message) {
     
     Serial.println("System halted. Please reset to try again.");
     
-    // Flash built-in LED to indicate error state
-    pinMode(LED_BUILTIN, OUTPUT);
+    // Halt execution
     while (1) {
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(200);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(200);
+        delay(10000);
     }
 }
 
