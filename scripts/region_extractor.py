@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pathlib import Path
 import json
+import struct
 
 class BMORegionExtractor:
     def __init__(self):
@@ -76,7 +77,8 @@ class BMORegionExtractor:
                     y = pixel_idx // width
                     x = pixel_idx % width
                     bit_val = (byte_val >> (7 - bit_idx)) & 1
-                    image[y, x] = 255 if bit_val else 0
+                    # Stored format: black pixels are 1, white pixels are 0
+                    image[y, x] = 0 if bit_val else 255
                     
         return image
     
@@ -98,8 +100,8 @@ class BMORegionExtractor:
                     if byte_idx >= len(data):
                         break
                         
-                    # Convert pixel to bit (>127 = white = 1, <=127 = black = 0)
-                    bit_val = 1 if image[y, x] > 127 else 0
+                    # Convert pixel to bit: black (<=127) -> 1, white (>127) -> 0
+                    bit_val = 1 if image[y, x] <= 127 else 0
                     
                     # Set bit in byte (MSB first)
                     if bit_val:
@@ -138,12 +140,29 @@ class BMORegionExtractor:
         if data is None:
             return False
             
-        # Auto-detect format (assume 200x200 1-bit for BMO)
+        # Detect if file contains 16-byte header (x,y,w,h) followed by packed 1bpp
         width, height, bit_depth = 200, 200, 1
         expected_size = (width * height) // 8
-        
-        if len(data) != expected_size:
-            print(f"Warning: File size {len(data)} doesn't match expected {expected_size} for 200x200 1-bit")
+
+        # If file is larger than plain image, try parsing header
+        if len(data) >= 16:
+            try:
+                hx, hy, hw, hh = struct.unpack('<4i', data[:16])
+                body = data[16:]
+                if len(body) == (hw * hh) // 8:
+                    # Use header-defined dimensions and image body
+                    width, height = hw, hh
+                    bit_depth = 1
+                    data = body
+                    print(f"Detected headered .bin: x={hx} y={hy} w={hw} h={hh}")
+                else:
+                    # Fall back to previous auto-detect
+                    pass
+            except Exception:
+                pass
+
+        if len(data) != (width * height) // 8:
+            print(f"Warning: File size {len(data)} doesn't match expected {(width * height) // 8} for {width}x{height} 1-bit")
             # Try other common formats
             formats = [(128, 128, 1), (96, 96, 1), (64, 64, 1)]
             for w, h, bd in formats:
@@ -161,9 +180,22 @@ class BMORegionExtractor:
             
             # Load region configurations
             regions = self.load_regions_config()
-            
-            # Extract each region
+            # If the source image is not full 200x200, scale default regions
+            src_width, src_height = width, height
             expression_name = input_path.stem
+            if src_width != 200 or src_height != 200:
+                sx = src_width / 200.0
+                sy = src_height / 200.0
+                scaled_regions = {}
+                for rname, rc in regions.items():
+                    scaled_regions[rname] = {
+                        'x': int(rc['x'] * sx),
+                        'y': int(rc['y'] * sy),
+                        'width': int(rc['width'] * sx),
+                        'height': int(rc['height'] * sy),
+                        'description': rc.get('description', '')
+                    }
+                regions = scaled_regions
             results = {}
             
             for region_name, region_config in regions.items():
@@ -171,9 +203,11 @@ class BMORegionExtractor:
                     region_image = self.extract_region(image, region_config)
                     region_data = self.image_to_bytes(region_image, bit_depth)
                     
-                    # Save region file
                     output_file = output_dir / f"{expression_name}_{region_name}.bin"
+                    # Write 16-byte header (x, y, width, height) then packed 1bpp data
+                    header = struct.pack('<4i', region_config['x'], region_config['y'], region_config['width'], region_config['height'])
                     with open(output_file, 'wb') as f:
+                        f.write(header)
                         f.write(region_data)
                     
                     results[region_name] = {

@@ -20,6 +20,9 @@
 #include <SPIFFS.h>
 #include "GDEH0154D67_Display.h"
 
+// (Removed hardcoded boot-time burn loop; maintenance burn can be
+// triggered manually over serial with the `BURN <n>` command.)
+
 
 // GPIO Pin Configuration for Seeed XIAO ESP32-C3
 // Using hardware SPI pins for proper communication
@@ -99,119 +102,147 @@ void setup() {
     Serial.println("Setup completed successfully!");
     Serial.println("Starting main loop with .bin face animation...");
     last_update_time = millis();
+
+// Hard burn removed; use serial `BURN <n>` if needed.
 }
 
 /**
  * Arduino main loop - runs continuously
  */
 void loop() {
+    // New behavior: wait for serial commands from the host to display images.
+    // Supported commands:
+    //  - LIST               : list available .bin files
+    //  - SHOW <filename>    : display the named .bin file (exact filename or without leading /)
+    //  - SHOWIDX <n>        : display file by index from LIST (0-based)
+    //  - BURN <n>           : perform n full refresh cycles (maintenance)
+    // Any other input is ignored.
 
-    static File binFiles[16];
-    static int numFiles = 0;
-    static int currentFile = 0;
-    static bool filesListed = false;
-    static unsigned long lastSwitch = 0;
+    static String fileList[64];
+    static int fileCount = -1;
 
-    if (!filesListed) {
+    // Populate file list on first loop
+    if (fileCount < 0) {
+        fileCount = 0;
         File root = SPIFFS.open("/");
         if (!root || !root.isDirectory()) {
             Serial.println("/ directory not found in SPIFFS!");
             while (1) delay(1000);
         }
         File file = root.openNextFile();
-        while (file && numFiles < 16) {
+        while (file && fileCount < 64) {
             String name = file.name();
             if (name.endsWith(".bin")) {
-                // Ensure absolute path
                 if (!name.startsWith("/")) name = "/" + name;
-                binFiles[numFiles++] = SPIFFS.open(name, "r");
-                Serial.print("Found bin: "); Serial.println(name);
+                fileList[fileCount++] = name;
+                Serial.print("Found bin ["); Serial.print(fileCount-1); Serial.print("]: "); Serial.println(name);
             }
             file = root.openNextFile();
         }
-        filesListed = true;
-        if (numFiles == 0) {
-            Serial.println("No .bin files found in /data!");
-            while (1) delay(1000);
+        if (fileCount == 0) {
+            Serial.println("No .bin files found in SPIFFS root.");
         }
-        lastSwitch = millis();
     }
 
-
-    unsigned long now = millis();
-    if (now - lastSwitch < 1000) return;
-    lastSwitch = now;
-
-    // If we've done enough partial updates, do a full refresh
-    if (partial_update_count >= PARTIAL_UPDATE_THRESHOLD) {
-        Serial.println("\n--- Threshold reached: Performing full refresh to clear ghosting ---");
-        display.initializeMonochrome();
-        display.clearScreen();
-        static uint8_t white_base[5000];
-        memset(white_base, 0xFF, sizeof(white_base));
-        display.setPartialRefreshBase(white_base);
-        display.refreshFull();
-        Serial.println("--- Full refresh completed, resuming animation ---\n");
-        partial_update_count = 0;
-        return;
-    }
-
-    // Read and display the current .bin file
-    File& f = binFiles[currentFile];
-        if (!f) {
-            Serial.print("File handle invalid for: ");
-            Serial.println(f.name());
-            currentFile = (currentFile + 1) % numFiles;
-            return;
+    // Process serial commands (line-oriented)
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+        if (cmd.length() == 0) return;
+        cmd.toUpperCase();
+        if (cmd == "LIST") {
+            Serial.println("FILELIST_START");
+            for (int i = 0; i < fileCount; ++i) {
+                Serial.print(i); Serial.print(": "); Serial.println(fileList[i]);
+            }
+            Serial.println("FILELIST_END");
+        } else if (cmd.startsWith("SHOW ")) {
+            String arg = cmd.substring(5);
+            // Try exact match first (allow user to send without leading /)
+            String target = arg;
+            if (!target.startsWith("/")) target = "/" + target;
+            int idx = -1;
+            for (int i = 0; i < fileCount; ++i) {
+                String candidate = fileList[i];
+                String candidateUp = candidate;
+                candidateUp.toUpperCase();
+                if (candidateUp == target || candidateUp == arg) { idx = i; break; }
+            }
+            if (idx >= 0) {
+                // Open and display
+                File f = SPIFFS.open(fileList[idx], "r");
+                if (!f) { Serial.println("ERROR: failed to open file"); }
+                else {
+                    size_t fsize = f.size();
+                    size_t monoSize = display.getMonoBufferSize();
+                    size_t graySize = display.getGrayBufferSize();
+                    if (fsize == monoSize) {
+                        uint8_t* buf = (uint8_t*)malloc(fsize);
+                        if (buf) {
+                            f.read(buf, fsize);
+                            display.initializeMonochrome();
+                            display.displayFullScreenMono(buf, true);
+                            free(buf);
+                            Serial.print("Displayed: "); Serial.println(fileList[idx]);
+                        } else Serial.println("ERROR: malloc failed");
+                    } else if (fsize == graySize) {
+                        uint8_t* buf = (uint8_t*)malloc(fsize);
+                        if (buf) {
+                            f.read(buf, fsize);
+                            display.displayFullScreen4Gray(buf, true);
+                            free(buf);
+                            Serial.print("Displayed (4-gray): "); Serial.println(fileList[idx]);
+                        } else Serial.println("ERROR: malloc failed");
+                    } else {
+                        Serial.println("ERROR: file size not recognized for full-screen image");
+                    }
+                    f.close();
+                }
+            } else {
+                Serial.print("ERROR: file not found: "); Serial.println(arg);
+            }
+        } else if (cmd.startsWith("SHOWIDX ")) {
+            int n = cmd.substring(8).toInt();
+            if (n >= 0 && n < fileCount) {
+                Serial.print("Showing index "); Serial.println(n);
+                String filename = fileList[n];
+                File f = SPIFFS.open(filename, "r");
+                if (!f) { Serial.println("ERROR: failed to open file"); }
+                else {
+                    size_t fsize = f.size();
+                    size_t monoSize = display.getMonoBufferSize();
+                    size_t graySize = display.getGrayBufferSize();
+                    if (fsize == monoSize) {
+                        uint8_t* buf = (uint8_t*)malloc(fsize);
+                        if (buf) { f.read(buf, fsize); display.initializeMonochrome(); display.displayFullScreenMono(buf, true); free(buf); }
+                    } else if (fsize == graySize) {
+                        uint8_t* buf = (uint8_t*)malloc(fsize);
+                        if (buf) { f.read(buf, fsize); display.displayFullScreen4Gray(buf, true); free(buf); }
+                    } else Serial.println("ERROR: file size not recognized for full-screen image");
+                    f.close();
+                }
+            } else Serial.println("ERROR: index out of range");
+        } else if (cmd.startsWith("BURN ")) {
+            int cnt = cmd.substring(5).toInt();
+            if (cnt <= 0) cnt = 1;
+            Serial.print("Triggering "); Serial.print(cnt); Serial.println(" full refresh cycles...");
+            for (int i = 0; i < cnt; ++i) {
+                display.initializeMonochrome();
+                display.clearScreen();
+                static uint8_t white_base_buf[5000];
+                memset(white_base_buf, 0xFF, sizeof(white_base_buf));
+                display.setPartialRefreshBase(white_base_buf);
+                display.refreshFull();
+                delay(1200);
+            }
+            Serial.println("Full refresh cycles complete.");
+        } else {
+            Serial.print("Unknown command: "); Serial.println(cmd);
         }
-        size_t fsize = f.size();
-        Serial.print("File: "); Serial.print(f.name()); Serial.print(", size: "); Serial.println(fsize);
-        if (fsize < 16) {
-            Serial.println("File too small for header!");
-            currentFile = (currentFile + 1) % numFiles;
-            return;
-        }
-    f.seek(0);
-    int32_t x, y, w, h;
-    uint8_t header[16];
-    int readBytes = f.read(header, 16);
-    if (readBytes != 16) {
-        Serial.println("Failed to read header!");
-        currentFile = (currentFile + 1) % numFiles;
-        return;
     }
-    x = header[0] | (header[1]<<8) | (header[2]<<16) | (header[3]<<24);
-    y = header[4] | (header[5]<<8) | (header[6]<<16) | (header[7]<<24);
-    w = header[8] | (header[9]<<8) | (header[10]<<16) | (header[11]<<24);
-    h = header[12] | (header[13]<<8) | (header[14]<<16) | (header[15]<<24);
-    Serial.print("Header for "); Serial.print(f.name());
-    Serial.print(": x="); Serial.print(x);
-    Serial.print(", y="); Serial.print(y);
-    Serial.print(", w="); Serial.print(w);
-    Serial.print(", h="); Serial.println(h);
-    if (w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > 200 || y + h > 200) {
-        Serial.println("Invalid region in bin file!");
-        currentFile = (currentFile + 1) % numFiles;
-        return;
-    }
-    int bytes = ((w * h) + 7) / 8;
-    static uint8_t regionBuf[200*200/8];
-    if (bytes > sizeof(regionBuf)) {
-        Serial.println("Region too large!");
-        currentFile = (currentFile + 1) % numFiles;
-        return;
-    }
-    f.seek(16);
-    f.read(regionBuf, bytes);
 
-    display.updatePartialRegion(x, 200-y, regionBuf, w, h);
-    partial_update_count++;
-
-    Serial.print("Displayed: "); Serial.println(f.name());
-    currentFile = (currentFile + 1) % numFiles;
-
-    // End of new animation logic. Remove unreachable legacy code below.
-    return;
+    // Idle until next serial command
+    delay(50);
     // // Total width needed: 5*32 = 160 pixels, centered on 200px display
     // // Starting X position: (200-160)/2 = 20 pixels
     // // Y position: centered vertically (200-64)/2 = 68 pixels

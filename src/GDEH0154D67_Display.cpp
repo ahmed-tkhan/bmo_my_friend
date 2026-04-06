@@ -277,8 +277,8 @@ void GDEH0154D67_Display::displayFullScreenMono(const unsigned char* image_data,
     
     // Transfer all 5000 bytes of image data
     for (unsigned int i = 0; i < MONO_BUFFER_SIZE; i++) {
-        // Use pgm_read_byte for compatibility with program memory storage
-        writeData(pgm_read_byte(&image_data[i]));
+        // Write bytes directly from provided buffer (works for RAM or PROGMEM)
+        writeData(image_data[i]);
     }
     
     // Trigger refresh if requested
