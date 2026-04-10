@@ -118,30 +118,13 @@ void loop() {
     //  - BURN <n>           : perform n full refresh cycles (maintenance)
     // Any other input is ignored.
 
-    static String fileList[64];
-    static int fileCount = -1;
-
-    // Populate file list on first loop
-    if (fileCount < 0) {
-        fileCount = 0;
-        File root = SPIFFS.open("/");
-        if (!root || !root.isDirectory()) {
-            Serial.println("/ directory not found in SPIFFS!");
-            while (1) delay(1000);
-        }
-        File file = root.openNextFile();
-        while (file && fileCount < 64) {
-            String name = file.name();
-            if (name.endsWith(".bin")) {
-                if (!name.startsWith("/")) name = "/" + name;
-                fileList[fileCount++] = name;
-                Serial.print("Found bin ["); Serial.print(fileCount-1); Serial.print("]: "); Serial.println(name);
-            }
-            file = root.openNextFile();
-        }
-        if (fileCount == 0) {
-            Serial.println("No .bin files found in SPIFFS root.");
-        }
+    static EmotionManager manager(&display);
+    static bool managerStarted = false;
+    if (!managerStarted) {
+        manager.begin();
+        managerStarted = true;
+        Serial.print("EmotionManager initialized, files: ");
+        Serial.println(manager.count());
     }
 
     // Process serial commands (line-oriented)
@@ -152,76 +135,17 @@ void loop() {
         cmd.toUpperCase();
         if (cmd == "LIST") {
             Serial.println("FILELIST_START");
-            for (int i = 0; i < fileCount; ++i) {
-                Serial.print(i); Serial.print(": "); Serial.println(fileList[i]);
+            for (int i = 0; i < manager.count(); ++i) {
+                Serial.print(i); Serial.print(": "); Serial.println(manager.nameAt(i));
             }
             Serial.println("FILELIST_END");
         } else if (cmd.startsWith("SHOW ")) {
             String arg = cmd.substring(5);
             // Try exact match first (allow user to send without leading /)
-            String target = arg;
-            if (!target.startsWith("/")) target = "/" + target;
-            int idx = -1;
-            for (int i = 0; i < fileCount; ++i) {
-                String candidate = fileList[i];
-                String candidateUp = candidate;
-                candidateUp.toUpperCase();
-                if (candidateUp == target || candidateUp == arg) { idx = i; break; }
-            }
-            if (idx >= 0) {
-                // Open and display
-                File f = SPIFFS.open(fileList[idx], "r");
-                if (!f) { Serial.println("ERROR: failed to open file"); }
-                else {
-                    size_t fsize = f.size();
-                    size_t monoSize = display.getMonoBufferSize();
-                    size_t graySize = display.getGrayBufferSize();
-                    if (fsize == monoSize) {
-                        uint8_t* buf = (uint8_t*)malloc(fsize);
-                        if (buf) {
-                            f.read(buf, fsize);
-                            display.initializeMonochrome();
-                            display.displayFullScreenMono(buf, true);
-                            free(buf);
-                            Serial.print("Displayed: "); Serial.println(fileList[idx]);
-                        } else Serial.println("ERROR: malloc failed");
-                    } else if (fsize == graySize) {
-                        uint8_t* buf = (uint8_t*)malloc(fsize);
-                        if (buf) {
-                            f.read(buf, fsize);
-                            display.displayFullScreen4Gray(buf, true);
-                            free(buf);
-                            Serial.print("Displayed (4-gray): "); Serial.println(fileList[idx]);
-                        } else Serial.println("ERROR: malloc failed");
-                    } else {
-                        Serial.println("ERROR: file size not recognized for full-screen image");
-                    }
-                    f.close();
-                }
-            } else {
-                Serial.print("ERROR: file not found: "); Serial.println(arg);
-            }
+            if (!manager.showByName(arg)) Serial.print("ERROR: file not found or display failed: "); Serial.println(arg);
         } else if (cmd.startsWith("SHOWIDX ")) {
             int n = cmd.substring(8).toInt();
-            if (n >= 0 && n < fileCount) {
-                Serial.print("Showing index "); Serial.println(n);
-                String filename = fileList[n];
-                File f = SPIFFS.open(filename, "r");
-                if (!f) { Serial.println("ERROR: failed to open file"); }
-                else {
-                    size_t fsize = f.size();
-                    size_t monoSize = display.getMonoBufferSize();
-                    size_t graySize = display.getGrayBufferSize();
-                    if (fsize == monoSize) {
-                        uint8_t* buf = (uint8_t*)malloc(fsize);
-                        if (buf) { f.read(buf, fsize); display.initializeMonochrome(); display.displayFullScreenMono(buf, true); free(buf); }
-                    } else if (fsize == graySize) {
-                        uint8_t* buf = (uint8_t*)malloc(fsize);
-                        if (buf) { f.read(buf, fsize); display.displayFullScreen4Gray(buf, true); free(buf); }
-                    } else Serial.println("ERROR: file size not recognized for full-screen image");
-                    f.close();
-                }
-            } else Serial.println("ERROR: index out of range");
+            if (!manager.showByIndex(n)) Serial.println("ERROR: index out of range or display failed");
         } else if (cmd.startsWith("BURN ")) {
             int cnt = cmd.substring(5).toInt();
             if (cnt <= 0) cnt = 1;
