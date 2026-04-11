@@ -1,3 +1,64 @@
+# BMO Display — Serial API & Integration
+
+Summary
+- This project drives a GDEH0154D67 1.54" e-paper display attached to a Seeed XIAO ESP32-C3.
+- The firmware exposes a small line-oriented serial API for listing and showing full-screen face images and for simple diagnostics.
+
+Quick start
+1. Upload `data/` to the device SPIFFS (already used in this repository):
+
+```powershell
+platformio run --target uploadfs --environment seeed_xiao_esp32c3
+```
+
+2. Flash firmware (uses `main.cpp` with the serial API):
+
+```powershell
+platformio run --target upload --environment seeed_xiao_esp32c3 --upload-port COM16
+```
+
+3. Use the host helper to iterate faces:
+
+```bash
+python scripts/show_faces.py COM16 --delay 2 --once
+```
+
+Serial API (line-oriented, newline-terminated)
+- `EMOTION.LIST` — returns file list between `FILELIST_START` / `FILELIST_END` lines in the format `index: /path/name.bin`
+- `EMOTION.SET <name>` — display the given file by name (accepts filename with or without leading `/`)
+- `EMOTION.SETIDX <n>` — display the file by index (0-based)
+- `STATUS` — returns a compact status line (heap, file count)
+- `PING` — returns `PONG`
+- `BURN <n>` — legacy maintenance: run `n` full refresh cycles
+
+Responses
+- Handlers reply with `OK ...` or `ERR ...` where appropriate. `EMOTION.LIST` uses the start/end markers above.
+
+Integration plan (high level)
+- The system is organized to keep the display firmware small and driven by a host orchestrator. For sky-clearness notifying and headphone TTS integration we recommend:
+  - `SkyChecker` (host-side): periodically fetch cloud/sky data from an API (OpenWeatherMap, Meteostat, ClearSky), compute a clearness metric.
+  - `SerialClient` (host-side): small helper to communicate with the ESP32 using the serial API (`EMOTION.SETIDX`, `STATUS`, etc.).
+  - `Notifier` (host-side): when sky clearness passes a threshold, speak a message to the user via local TTS and/or send an image command to the display.
+
+Notes & next steps
+- The device does not perform network requests in current firmware; orchestration is intended to run on the host PC (less work for the microcontroller).
+- For headphone audio on the host, use a cross-platform TTS like `pyttsx3` or platform-native audio playback. If you want the ESP32 to speak directly, we can add I2S audio + codec support in a later sub-repo.
+
+Files added to help integration:
+- `scripts/serial_client.py` — helper to send commands and read responses.
+- `scripts/sky_check.py` — starter script showing how to check cloudiness using OpenWeatherMap and trigger display/TTS actions.
+- `scripts/notify_headphones.py` — small TTS helper using `pyttsx3`.
+
+Dependencies
+- `pyserial` — for serial communication
+- `requests` — (optional) for web API calls in `sky_check.py`
+- `pyttsx3` — (optional) for host TTS
+
+Example workflow
+1. Run a sky-checking daemon on your host (calls `sky_check.py` periodically).
+2. When skies are clear, the daemon calls `serial_client.send('EMOTION.SETIDX 3')` and `notify_headphones.speak('Skies are clear in Algonquin')`.
+
+If you'd like, I can implement the `SkyChecker` integration in this repo next (API wiring, scheduling, threshold rules).
 # BMO My Friend
 A cute little BMO from Adventure Time on an e-ink display!
 ```

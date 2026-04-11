@@ -63,7 +63,23 @@ def main():
         print('Failed to open', args.port, e)
         sys.exit(1)
 
-    files = list_files(ser)
+    # Use EMOTION.LIST API
+    lines = send_cmd(ser, 'EMOTION.LIST', timeout=3)
+    # parse FILELIST_START..END
+    files = []
+    started = False
+    for l in lines:
+        if l == 'FILELIST_START':
+            started = True
+            continue
+        if l == 'FILELIST_END':
+            break
+        if started:
+            parts = l.split(':', 1)
+            if len(parts) == 2:
+                idx = parts[0].strip()
+                name = parts[1].strip()
+                files.append((int(idx), name))
     if not files:
         print('No files reported by device')
         ser.close()
@@ -77,7 +93,7 @@ def main():
         while True:
             for idx, name in files:
                 print('Showing', idx, name)
-                send_cmd(ser, f'SHOWIDX {idx}', read_response=False)
+                send_cmd(ser, f'EMOTION.SETIDX {idx}', read_response=False)
                 time.sleep(args.delay)
             if args.once:
                 break

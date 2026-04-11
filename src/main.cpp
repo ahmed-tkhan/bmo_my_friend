@@ -19,6 +19,8 @@
 #include <FS.h>
 #include <SPIFFS.h>
 #include "GDEH0154D67_Display.h"
+#include "emotion_manager.h"
+#include "serial_command.h"
 
 // (Removed hardcoded boot-time burn loop; maintenance burn can be
 // triggered manually over serial with the `BURN <n>` command.)
@@ -118,55 +120,7 @@ void loop() {
     //  - BURN <n>           : perform n full refresh cycles (maintenance)
     // Any other input is ignored.
 
-    static EmotionManager manager(&display);
-    static bool managerStarted = false;
-    if (!managerStarted) {
-        manager.begin();
-        managerStarted = true;
-        Serial.print("EmotionManager initialized, files: ");
-        Serial.println(manager.count());
-    }
-
-    // Process serial commands (line-oriented)
-    if (Serial.available()) {
-        String cmd = Serial.readStringUntil('\n');
-        cmd.trim();
-        if (cmd.length() == 0) return;
-        cmd.toUpperCase();
-        if (cmd == "LIST") {
-            Serial.println("FILELIST_START");
-            for (int i = 0; i < manager.count(); ++i) {
-                Serial.print(i); Serial.print(": "); Serial.println(manager.nameAt(i));
-            }
-            Serial.println("FILELIST_END");
-        } else if (cmd.startsWith("SHOW ")) {
-            String arg = cmd.substring(5);
-            // Try exact match first (allow user to send without leading /)
-            if (!manager.showByName(arg)) Serial.print("ERROR: file not found or display failed: "); Serial.println(arg);
-        } else if (cmd.startsWith("SHOWIDX ")) {
-            int n = cmd.substring(8).toInt();
-            if (!manager.showByIndex(n)) Serial.println("ERROR: index out of range or display failed");
-        } else if (cmd.startsWith("BURN ")) {
-            int cnt = cmd.substring(5).toInt();
-            if (cnt <= 0) cnt = 1;
-            Serial.print("Triggering "); Serial.print(cnt); Serial.println(" full refresh cycles...");
-            for (int i = 0; i < cnt; ++i) {
-                display.initializeMonochrome();
-                display.clearScreen();
-                static uint8_t white_base_buf[5000];
-                memset(white_base_buf, 0xFF, sizeof(white_base_buf));
-                display.setPartialRefreshBase(white_base_buf);
-                display.refreshFull();
-                delay(1200);
-            }
-            Serial.println("Full refresh cycles complete.");
-        } else {
-            Serial.print("Unknown command: "); Serial.println(cmd);
-        }
-    }
-
-    // Idle until next serial command
-    delay(50);
+    
     // // Total width needed: 5*32 = 160 pixels, centered on 200px display
     // // Starting X position: (200-160)/2 = 20 pixels
     // // Y position: centered vertically (200-64)/2 = 68 pixels
@@ -181,98 +135,63 @@ void loop() {
     // Serial.print(update_count);
     // Serial.print(" - Time: ");
     // Serial.print(minutes_high);
-    // Serial.print(minutes_low);
-    // Serial.print(":");
-    // Serial.print(seconds_high);
-    // Serial.println(seconds_low);
-    
-    // if (!display.updateMultipleRegions(regions)) {
-    //     Serial.print("ERROR: Failed to update regions - ");
-    //     Serial.println(display.getLastError());
-    // }
-    
-    // // Increment time counters (simulate clock progression)
-    // seconds_low++;
-    // if (seconds_low >= 10) {
-    //     seconds_low = 0;
-    //     seconds_high++;
-    //     if (seconds_high >= 6) {
-    //         seconds_high = 0;
-    //         minutes_low++;
-    //         if (minutes_low >= 10) {
-    //             minutes_low = 0;
-    //             minutes_high++;
-    //             if (minutes_high >= 6) {
-    //                 // After 59:59, perform a full refresh to clear any ghosting
-    //                 minutes_high = 0;
-    //                 Serial.println("\\n=== Performing full refresh to clear ghosting ===");
-    //                 display.initializeMonochrome();
-    //                 display.clearScreen();
-    //                 display.setPartialRefreshBase(gImage_basemap);
-    //                 Serial.println("=== Full refresh completed, resuming clock ===\\n");
-    //             }
-    //         }
-    //     }
-    // }
-    
-    // // Perform periodic full refresh every 100 updates to prevent ghosting
-    // // This is recommended best practice for e-paper displays
-    // if (update_count % 100 == 0) {
-    //     Serial.println("\\n--- Periodic maintenance refresh ---");
-    //     display.initializeMonochrome();
-    //     display.setPartialRefreshBase(gImage_basemap);
-    //     Serial.println("--- Maintenance refresh completed ---\\n");
-    // }
-    
-    // // Optional: Stop after a certain number of updates for demo purposes
-    // if (update_count >= 300) {  // Run for 5 minutes then stop
-    //     Serial.println("\\n=== Demo completed after 5 minutes ===");
-    //     Serial.println("Entering final deep sleep...");
-    //     display.enterDeepSleep();
-    //     Serial.println("Demo finished. Reset to run again.");
-        
-    //     // Infinite loop to stop execution
-    //     while (1) {
-    //         delay(10000);
-    //     }
-    // }
-}
+    static EmotionManager manager(&display);
+    static SerialCommand serCmd;
+    static bool initialized = false;
+    if (!initialized) {
+        manager.begin();
+        serCmd.begin(&Serial);
 
-/**
- * Emergency error handler
- */
-void handleError(const char* error_message) {
-    Serial.println("\\n!!! CRITICAL ERROR !!!");
-    Serial.print("Error: ");
-    Serial.println(error_message);
-    Serial.print("Display Error: ");
-    Serial.println(display.getLastError());
-    
-    // Attempt to safely shut down display
-    display.enterDeepSleep();
-    
-    Serial.println("System halted. Please reset to try again.");
-    
-    // Halt execution
-    while (1) {
-        delay(10000);
+        // Register commands under a modular interface
+        serCmd.registerCommand("EMOTION.LIST", [&](const String& a){
+            Serial.println("FILELIST_START");
+            for (int i = 0; i < manager.count(); ++i) {
+                Serial.print(i); Serial.print(": "); Serial.println(manager.nameAt(i));
+            }
+            Serial.println("FILELIST_END");
+        });
+
+        serCmd.registerCommand("EMOTION.SET", [&](const String& a){
+            if (a.length() == 0) { serCmd.reply("ERR missing arg"); return; }
+            if (manager.showByName(a)) serCmd.reply(String("OK " ) + a);
+            else serCmd.reply(String("ERR show failed: ") + a);
+        });
+
+        serCmd.registerCommand("EMOTION.SETIDX", [&](const String& a){
+            int idx = a.toInt();
+            if (manager.showByIndex(idx)) serCmd.reply(String("OK idx ") + String(idx));
+            else serCmd.reply(String("ERR idx ") + String(idx));
+        });
+
+        serCmd.registerCommand("STATUS", [&](const String& a){
+            serCmd.reply(String("HEAP:") + String(ESP.getFreeHeap()) + " FILES:" + String(manager.count()));
+        });
+
+        serCmd.registerCommand("PING", [&](const String& a){ serCmd.reply("PONG"); });
+
+        // Legacy/BURN command
+        serCmd.registerCommand("BURN", [&](const String& a){
+            int cnt = a.toInt(); if (cnt <= 0) cnt = 1;
+            serCmd.reply(String("BURN starting ") + String(cnt));
+            for (int i = 0; i < cnt; ++i) {
+                display.initializeMonochrome();
+                display.clearScreen();
+                static uint8_t white_base_buf[5000];
+                memset(white_base_buf, 0xFF, sizeof(white_base_buf));
+                display.setPartialRefreshBase(white_base_buf);
+                display.refreshFull();
+                delay(1200);
+            }
+            serCmd.reply("BURN done");
+        });
+
+        initialized = true;
+        Serial.print("EmotionManager initialized, files: ");
+        Serial.println(manager.count());
     }
-}
 
-/**
- * Print system information
- */
-void printSystemInfo() {
-    Serial.println("\\n=== System Information ===");
-    Serial.print("Free heap: ");
-    Serial.print(ESP.getFreeHeap());
-    Serial.println(" bytes");
-    
-    Serial.print("Chip Model: ");
-    Serial.println(ESP.getChipModel());
-    Serial.print("Chip Revision: ");
-    Serial.println(ESP.getChipRevision());
-    
+    serCmd.process();
+    delay(10);
     Serial.print("CPU Frequency: ");
     Serial.print(ESP.getCpuFreqMHz());
     Serial.println(" MHz");
